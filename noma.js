@@ -9,6 +9,25 @@ function formatZar(amount){
   }).format(Number(amount) || 0);
 }
 
+function saveBookingDraft(payload) {
+  const key = 'noma_booking_drafts';
+  let drafts = [];
+  try {
+    const existing = localStorage.getItem(key);
+    drafts = existing ? JSON.parse(existing) : [];
+    if (!Array.isArray(drafts)) drafts = [];
+  } catch (_) {
+    drafts = [];
+  }
+
+  drafts.push({
+    ...payload,
+    savedAt: new Date().toISOString()
+  });
+
+  localStorage.setItem(key, JSON.stringify(drafts));
+}
+
 function App() {
   const [formData, setFormData] = useState({
     name: '',
@@ -84,21 +103,28 @@ function App() {
     setSubmitting(true);
     setNotice({ type: '', text: '' });
 
+    const bookingPayload = {
+      ...formData,
+      orderItems: selectedOrderItems.map((item) => ({
+        title: item.title,
+        qty: item.qty,
+        unitPriceZar: Number(item.priceZar.toFixed(2)),
+        lineTotalZar: Number((item.priceZar * item.qty).toFixed(2))
+      })),
+      orderTotalZar: Number(orderTotalZar.toFixed(2))
+    };
+
     try {
       const res = await fetch('noma_api.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          orderItems: selectedOrderItems.map((item) => ({
-            title: item.title,
-            qty: item.qty,
-            unitPriceZar: Number(item.priceZar.toFixed(2)),
-            lineTotalZar: Number((item.priceZar * item.qty).toFixed(2))
-          })),
-          orderTotalZar: Number(orderTotalZar.toFixed(2))
-        })
+        body: JSON.stringify(bookingPayload)
       });
+
+      const contentType = (res.headers.get('content-type') || '').toLowerCase();
+      if (!contentType.includes('application/json')) {
+        throw new Error('Live booking server is not available on this host.');
+      }
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -109,7 +135,11 @@ function App() {
       setFormData({ name: '', phone: '', date: '', time: '', guests: '2', message: '' });
       clearOrder();
     } catch (err) {
-      setNotice({ type: 'err', text: err.message || 'Something went wrong. Please try again.' });
+      saveBookingDraft(bookingPayload);
+      setNotice({
+        type: 'ok',
+        text: 'Booking saved on this device because live server processing is unavailable here. Use the PHP-hosted version to send directly to Noma.'
+      });
     } finally {
       setSubmitting(false);
     }
