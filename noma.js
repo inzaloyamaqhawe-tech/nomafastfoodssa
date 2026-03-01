@@ -119,7 +119,7 @@ function App() {
       await new Promise((resolve) => setTimeout(resolve, 450));
       setFormData({ name: '', phone: '', date: '', time: '', guests: '2', message: '' });
       clearOrder();
-      window.alert('Booking request submitted successfully.');
+      window.alert('Successful order submitted.');
     } catch (err) {
       window.alert('Booking captured for demo, but there was a local save issue.');
     } finally {
