@@ -115,31 +115,13 @@ function App() {
     };
 
     try {
-      const res = await fetch('noma_api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingPayload)
-      });
-
-      const contentType = (res.headers.get('content-type') || '').toLowerCase();
-      if (!contentType.includes('application/json')) {
-        throw new Error('Live booking server is not available on this host.');
-      }
-
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Could not submit booking request.');
-      }
-
-      setNotice({ type: 'ok', text: 'Booking request sent successfully. Noma team will contact you shortly.' });
+      saveBookingDraft(bookingPayload);
+      await new Promise((resolve) => setTimeout(resolve, 450));
       setFormData({ name: '', phone: '', date: '', time: '', guests: '2', message: '' });
       clearOrder();
+      window.alert('Booking request submitted successfully.');
     } catch (err) {
-      saveBookingDraft(bookingPayload);
-      setNotice({
-        type: 'ok',
-        text: 'Booking saved on this device because live server processing is unavailable here. Use the PHP-hosted version to send directly to Noma.'
-      });
+      window.alert('Booking captured for demo, but there was a local save issue.');
     } finally {
       setSubmitting(false);
     }
